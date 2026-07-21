@@ -62,3 +62,33 @@ describe("ProjectsService.publish", () => {
     expect(markPublished).not.toHaveBeenCalled();
   });
 });
+
+describe("ProjectsService.unpublish", () => {
+  it("calls publisher.unpublish and marks unpublished", async () => {
+    const markUnpublished = jest.fn().mockResolvedValue({ ...baseProject, publishedAt: null });
+    const repository = {
+      findById: () => Promise.resolve({ ...baseProject, publishedAt: new Date() }),
+      markUnpublished
+    } as unknown as ProjectsRepository;
+    const publisher = { unpublish: jest.fn().mockResolvedValue(undefined) } as unknown as PublisherService;
+    const service = new ProjectsService(repository, publisher);
+
+    await service.unpublish(baseProject.id);
+
+    expect((publisher.unpublish as jest.Mock).mock.calls.length).toBe(1);
+    expect(markUnpublished).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not mark unpublished when publisher.unpublish throws", async () => {
+    const markUnpublished = jest.fn();
+    const repository = {
+      findById: () => Promise.resolve({ ...baseProject, publishedAt: new Date() }),
+      markUnpublished
+    } as unknown as ProjectsRepository;
+    const publisher = { unpublish: jest.fn().mockRejectedValue(new Error("IO")) } as unknown as PublisherService;
+    const service = new ProjectsService(repository, publisher);
+
+    await expect(service.unpublish(baseProject.id)).rejects.toThrow("IO");
+    expect(markUnpublished).not.toHaveBeenCalled();
+  });
+});

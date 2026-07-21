@@ -109,6 +109,15 @@ export class ProjectsController {
     return this.projects.publish(id);
   }
 
+  @Post(":id/unpublish")
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: "Project unpublished" })
+  @ApiBadRequestResponse({ description: "Malformed project ID" })
+  @ApiNotFoundResponse({ description: "Project not found" })
+  unpublish(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string): Promise<void> {
+    return this.projects.unpublish(id);
+  }
+
   @Delete(":id")
   @HttpCode(204)
   @ApiBody({ type: DeleteProjectDto })

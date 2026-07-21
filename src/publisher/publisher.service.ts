@@ -39,4 +39,25 @@ export class PublisherService {
 
     return target;
   }
+
+  async unpublish(projectId: string): Promise<void> {
+    if (!isValidProjectId(projectId)) {
+      throw new Error("Invalid project ID");
+    }
+
+    const root = resolve(this.config.publishDir);
+    const target = resolve(join(root, `${projectId}.html`));
+    if (dirname(target) !== root || basename(target) !== `${projectId}.html`) {
+      throw new Error("Published output must remain inside PUBLISH_DIR");
+    }
+
+    try {
+      await unlink(target).catch((err: any) => {
+        if (err && err.code === "ENOENT") return; // idempotent when file missing
+        throw err;
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }

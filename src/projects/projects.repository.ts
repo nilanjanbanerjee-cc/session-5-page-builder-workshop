@@ -140,4 +140,12 @@ export class ProjectsRepository {
     });
     return toEntity(row);
   }
+
+  async markUnpublished(id: string): Promise<ProjectEntity> {
+    const row = await this.projects.update({
+      where: { id },
+      data: { publishedAt: null }
+    });
+    return toEntity(row);
+  }
 }

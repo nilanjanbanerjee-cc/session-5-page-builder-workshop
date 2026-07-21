@@ -642,4 +642,34 @@ describe("project API", () => {
     expect(updated.publishedAt).toBeNull();
     expect(updated.lastSuccessfulPublishAt).toBe(lastPublishTime);
   });
+
+  it("unpublishes a published page and is idempotent while leaving other output intact", async () => {
+    const first = await createProject({ slug: "first-page" });
+    const second = await createProject({ name: "Other", slug: "other-page", blocks: [ { id: "other", type: "text", text: "Other" } ] });
+
+    await request(app.getHttpServer()).post(`/api/projects/${first.id}/publish`).expect(201);
+    await request(app.getHttpServer()).post(`/api/projects/${second.id}/publish`).expect(201);
+
+    // Both published
+    await request(app.getHttpServer()).get(`/sites/first-page`).expect(200);
+    await request(app.getHttpServer()).get(`/sites/other-page`).expect(200);
+
+    // Unpublish the first project
+    await request(app.getHttpServer()).post(`/api/projects/${first.id}/unpublish`).expect(204);
+
+    // No longer served
+    await request(app.getHttpServer()).get(`/sites/first-page`).expect(404);
+
+    // Other project remains served
+    await request(app.getHttpServer()).get(`/sites/other-page`).expect(200);
+
+    // Second unpublish is safe
+    await request(app.getHttpServer()).post(`/api/projects/${first.id}/unpublish`).expect(204);
+
+    // Other project still served and its file remains
+    await request(app.getHttpServer()).get(`/sites/other-page`).expect(200);
+    await expect(readdir(config.publishDir)).resolves.toEqual(
+      expect.arrayContaining([`${second.id}.html`])
+    );
+  });
 });
